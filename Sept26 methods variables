@@ -1,0 +1,110 @@
+# So my professor spoke to the IT manager of the Miami 311 data last week and to all of 
+# our surpise, we haven't been using the best version of the Miami 311 data out there.
+
+# GREAT! This means that all of the analysis will need to be redone. FANTASTIC! I am 
+# a bit salty but honestly this will be good for me. As, I continue to learn and practice 
+# I am constantly thinking I could improve this analysis by doing this differently the 
+# second time around or I am catching mistakes or just bad coding practices. So, here we
+# go again and it's pretty simple stuff just like cleaning and creating new variables. 
+
+# I have also been making more use of Excel for cleaning purposes. It takes less time
+# and I really like the fact that I can see my data at once which can't be done in R. 
+
+# The new data I will be working with today I will refer to Beta_data. It is in the beta 
+# version on the 311 website but the director assures us that this is the most accurate.
+# Beta_data differes from the original data in many ways. To start, it doesn't have the
+# same cases, it includes different issue types, but the methods are the same. Also Beta
+# _data, includes ONLY completed calls. 
+
+# As of right now, I am in Excel getting rid of the empty column called Issue Description
+# and I am only selecting the methods that my professor would like to analyze. These
+# methods are 311 calls that only citizens have called in. The methods are: 
+   ### MOBILE
+   ### IPHONE
+   ### ANDROID
+   ### EMAIL
+   ### WEB
+   ### WALKIN
+   ### FAX
+   ### OTHER
+   ### MAIL
+   ### MAYOFF
+   ### SOCIALMEDIA
+   ### PHONE
+   ### *** beta_data does not include a fax method. 
+
+# The original data had 201,794 rows and after selecting only the wanted methods, 
+# the data has 199,870 call reports.
+
+# The data is now cleaned and has no missing addresses or methods but it still has
+# incomplete Actual.Completed.Days rows. I don't thing this is too important for the 
+# methods analysis as we are wanting to explore how the calls come in. 
+
+# There are 69 issue types. 
+
+# Now lets import the clean csv. 
+beta_data <- read.csv("Sept26_BetaData_clean.csv")
+
+# Awesome it's in! 
+sum(is.na(beta_data$Method.Received) ==TRUE)
+   ### This returns 0. 
+
+# Let's get some percentages of the specific methods per the amount of calls.I switched 
+# computers so I have to re-install everything...
+install.packages("dplyr")
+library(dplyr)
+beta_data %>% 
+  select(Method.Received)%>%
+  group_by(Method.Received)%>%
+  summarise(method_count = n(), percentage = method_count/199870 * 100)
+
+#  1 ANDROID                 1195   0.598   
+#  2 EMAIL                   1874   0.938   
+#  3 IPHONE                  3135   1.57    
+#  4 MAIL                      13   0.00650 
+#  5 MAYOFF                     6   0.00300 
+#  6 MOBILE                     1   0.000500
+#  7 OTHER                      9   0.00450 
+#  8 PHONE                 191414  95.8     
+#  9 SOCIALMEDIA               45   0.0225  
+#  10 WALKIN                   327   0.164   
+#  11 WEB                     1851   0.926
+
+# Now we will do some variable creation we need to change some of the names in order to
+# combine similar method types. 
+# Instead of combining it by seperatly dragging out each element like before, I'm going
+# to just change the names of IPHONE and ANDROID to MOBILE and redo the stats from
+# the code above. 
+levels(beta_data$Method.Received)
+#[1] "ANDROID"     "EMAIL"       "IPHONE"      "MAIL"        "MAYOFF"      "MOBILE"     
+#[7] "OTHER"       "PHONE"       "SOCIALMEDIA" "WALKIN"      "WEB"
+levels(beta_data$Method.Received) <- list(N.MOBILE = c("ANDROID", "IPHONE", "MOBILE"), 
+                                          EMAIL = "EMAIL", MAIL = "MAIL", MAYOFF = "MAYOFF",
+                                          OTHER = "OTHER", PHONE = "PHONE", SOCMED = "SOCIALMEDIA",
+                                          WALKIN = "WALKIN", WEB = "WEB")
+levels(beta_data$Method.Received)
+#[1] "N.MOBILE" "EMAIL"    "MAIL"     "MAYOFF"   "OTHER"    "PHONE"    "SOCMED"   "WALKIN"  
+#[9] "WEB
+
+# Great let's re-run the numbers. 
+# A tibble: 9 x 3
+# Method.Received method_count percentage
+#<fct>                  <int>      <dbl>
+#1 SMARTAPP                4331    2.17   
+#2 EMAIL                   1874    0.938  
+#3 MAIL                      13    0.00650
+#4 MAYOFF                     6    0.00300
+#5 OTHER                      9    0.00450
+#6 PHONE                 191414   95.8    
+#7 SOCMED                    45    0.0225 
+#8 WALKIN                   327    0.164  
+#9 WEB                     1851    0.926  
+
+# The phone method is just way too overpowering. I'm going to see the numbers...Forgot
+# my professor wanted it called smartphone app\
+levels(beta_data$Method.Received) <- list(SMARTAPP = c("N.MOBILE"), 
+                                          EMAIL = "EMAIL", MAIL = "MAIL", MAYOFF = "MAYOFF",
+                                          OTHER = "OTHER", PHONE = "PHONE", SOCMED = "SOCIALMEDIA",
+                                          WALKIN = "WALKIN", WEB = "WEB")
+# Compared to the previous Miami 311 data set, the PHONE method was about 55%. Here
+# however, the PHONE method holds about 96% of the calls. 
