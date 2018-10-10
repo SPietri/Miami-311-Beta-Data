@@ -1,0 +1,385 @@
+# October 10, 2018
+
+# So I cannot remove certain observations because that could create bias if one of the
+# issue types is frequent for the issue. 
+
+# The data set we will use today is called beta_data_Oct5.copy.csv. This has cleaned 
+# data based on the the call being open and when it is available. I'm going to see if
+# this would work better in excel to 1st determine the outliers of each issue type (there
+# is a lot), then 2nd index the outliers and change there values. 
+
+# Hopefully not every issue type has outliers or crazy numbers. 
+
+# Not really. I'm going to use dplyr to break down all the issue types and get its
+# statistics that would appear in a box plot such as median, mean, min, max, q1, 
+# q3, quartile range (q3 -q1), outter fence (quartile range multiplied by 3
+# then subtracted from q3 qnd q1). I can do this using the quantile ( @ 0.25 and 0.75) 
+# function. Then I'm thinking I could create a function that would give me the position for each outlier by passing it 
+# through the "outlier test" and using the which function or by creating a column that
+# would label it as such. Then I would remove these, recalculate the mean, and then replace them
+# and add them in. 
+
+# Let's get started. I need to upload my data
+oct5 <- read.csv("F:/beta_data_Oct5 - Copy.csv")
+
+# Load in some packages...
+delay_stats <- oct5 %>% select(Issue.Type, Actual.Completed.Days)%>%
+  group_by(Issue.Type)%>%
+  summarise(min = min(Actual.Completed.Days), 
+            median = median(Actual.Completed.Days),
+            Q1 = quantile(Actual.Completed.Days, 0.25),
+            mean = mean(Actual.Completed.Days),
+            Q3 = quantile(Actual.Completed.Days, 0.75),
+            max = max(Actual.Completed.Days),
+            QR = (Q3 - Q1),
+            IF1 = Q1 -(QR * 1.5),
+            IF2 = Q3 + (QR * 1.5),
+            OF1 = Q1 - (QR * 3),
+            OF2 = Q3 + (QR * 3))
+
+
+# From this these issue types have no completed days possibly remove: 
+# BUILDING CUSTOMER SERVICE COMPLAINT
+# BUILDING INSPECTOR COMPLAINT
+# FREE INCOME TAX PREPARATION REGISTRATION
+# ILLEGAL CONSTRUCTION IN PROGRESS -BUILDING
+
+# Now I'm going to box plot the ones that have maxs that aren't considered outliers
+# These are: 
+# BEE AND WASP CONTROL : after box plot shows no outliers 
+# CANAL CLEANING : 
+# TREE DOWN BLOCKING STREET
+# ROAD DEBRIS BLOCKING TRAFFIC RIGHT OF WAY
+# TREE BRACING REMOVAL / REPAIR : box plot shows outlier but OF2 doesn't catch it. 
+#                                 would like to use Inner Fences. 
+# RECYCLING MISSED : box plot shows outliers past 6
+
+# Let's give these a try...
+oct5 %>% 
+  select(Issue.Type, Actual.Completed.Days)%>%
+  filter(Issue.Type == "GARBAGE - MISSED")%>%
+  #ggplot(aes(Ticket.Created.Date...Time, Actual.Completed.Days)) + geom_point() 
+  ggplot(aes(Issue.Type, Actual.Completed.Days))+geom_boxplot()
+
+# Based on various box plots I am going to use the inner fences to rid the data 
+# of outliers.http://mathforum.org/library/drmath/view/52200.html 
+
+# Now we have to remove the values above or below the IF1 and IF2. It is a tad
+# uncomfortable because for some of these it would remove a lot of observations. 
+
+# let's make a new table with all the varibales and select the values less than or equal to 
+# its IF2 (because IF1 is either zero or negative). I'm going to make a messy 
+# data set with an inner join this will repeat the IF2 number for each of the issues. 
+# We need to merge the IF2 column with the actual.completed days for each issue type. 
+# then remove the values greater then their cooresponding IF2 value. 
+oct5.2 <- oct5 %>% select(Issue.Type, Actual.Completed.Days)
+ds2 <- delay_stats %>% select(Issue.Type, IF2)
+
+new_data <- inner_join(oct5.2, ds2, by ="Issue.Type")
+View(new_data)
+
+# Cool now remove the rows to recalculate the means for each issue type
+n.calls <- new_data %>% 
+  filter(Actual.Completed.Days <= IF2)
+
+n.calls %>% 
+  select(Issue.Type, Actual.Completed.Days)%>%
+  filter(Issue.Type == "ABANDONED VEHICLE - PRIVATE")%>%
+  #ggplot(aes(Ticket.Created.Date...Time, Actual.Completed.Days)) + geom_point() 
+  ggplot(aes(Issue.Type, Actual.Completed.Days))+geom_boxplot()
+
+n.means <- n.calls %>% 
+  group_by(Issue.Type) %>%
+  summarise(mean = mean(Actual.Completed.Days))
+
+# It appears the data outliers are removed though I'm uncomfortable with the process
+# so I have an idea. I think the issue stems from some being created one to two years before
+# they were previously closed. So I will find those issue types and change to the means 
+# as needed. This is done through exel using the information created in R
+
+# The main issue types I have are for the year 2016 created from august 2017 to when 
+# downloaded 2018 are: 
+#BEE AND WASP CONTROL
+#BUILDING MAINTENANCE INADEQUATE
+#CANAL CLEANING
+#POTHOLE
+#ROAD DEBRIS BLOCKING TRAFFIC RIGHT OF WAY
+#SIDEWALK DAMAGE
+#STORM FLOOD/ DRAINAGE
+#SWALE GRADING / DROP OFF REPAIR
+#TRASH HOLE
+#TREE BLOCKING TRAFFIC SIGNAL/LIGHT (STOP SIGN)
+#TREE BRACING REMOVAL / REPAIR
+#TREE DOWN  BLOCKING STREET
+#TREE DOWN NOT BLOCKING THE STREET
+#TREE LEANING
+#TREE PEST CONTROL
+#TREE STUMP REMOVAL/ GRINDING
+#TREE TRIM AND ROOT PRUNING
+
+# And opened in 2017 closed in july-sept 2018
+# BEE AND WASP CONTROL	19
+# CANAL CLEANING	4
+#CAVE IN OR SINK HOLE	5
+#CODE ENFORCEMENT CU INSPECTION REQUEST	1
+#CONTAINER VIOLATION - COMMERCIAL / MULTI-FAMILY	1
+#ILLEGAL DUMPING / LITTER	28
+#LANDSCAPING CITY RIGHT OF WAY / MOWING	9
+#PARKING - COMMERCIAL VEHICLE ILLEGALLY IN RESIDENTIAL ZONE	1
+#POTHOLE	35
+#ROAD DEBRIS BLOCKING TRAFFIC RIGHT OF WAY	85
+#SIDEWALK DAMAGE	15
+#STORM FLOOD/ DRAINAGE	354
+#STREETS CROSSING	1
+#SWALE GRADING / DROP OFF REPAIR	1
+#TRASH HOLE	7
+#TREE BLOCKING TRAFFIC SIGNAL/LIGHT (STOP SIGN)	63
+#TREE BRACING REMOVAL / REPAIR	7
+#TREE DOWN  BLOCKING STREET	235
+#TREE DOWN NOT BLOCKING THE STREET	94
+#TREE FELL ON HOUSE	2
+#TREE LEANING	34
+#TREE PEST CONTROL	13
+#TREE STUMP REMOVAL/ GRINDING	28
+#TREE TRIM AND ROOT PRUNING	233
+
+# So now we have our main issue types with the problem, the means of all issues without 
+# mild or extreme outliers. So in excel, I am going to manually replace because 
+# this is really tricky. 
+
+# Let's try removing these issues created in another year
+# Just in excel right now I looked at the year 2016 for calls created and last updated
+# in 2016. I have way better averages for issue types and that makes more sense to me than
+# those last updated in 2016. Its even closer to the goal days in a realistic way. I think
+# this is what our actual means look like without the data entry mistakes. ]
+
+# I will do this for all the years and see the avaerage I get for all
+# Posting tables in a word document. 
+# tHIS LOOKS MORE Promising. Im uploading the data now for each year.
+
+ds2016 <- b2016 %>% select(Issue.Type, Actual.Completed.Days)%>%
+group_by(Issue.Type)%>%
+  summarise(min = min(Actual.Completed.Days), 
+            median = median(Actual.Completed.Days),
+            Q1 = quantile(Actual.Completed.Days, 0.25),
+            mean = mean(Actual.Completed.Days),
+            Q3 = quantile(Actual.Completed.Days, 0.75),
+            max = max(Actual.Completed.Days),
+            QR = (Q3 - Q1),
+            IF1 = Q1 -(QR * 1.5),
+            IF2 = Q3 + (QR * 1.5),
+            OF1 = Q1 - (QR * 3),
+            OF2 = Q3 + (QR * 3))
+
+ds2017 <- b2017 %>% select(Issue.Type, Actual.Completed.Days)%>%
+  group_by(Issue.Type)%>%
+  summarise(min = min(Actual.Completed.Days), 
+            median = median(Actual.Completed.Days),
+            Q1 = quantile(Actual.Completed.Days, 0.25),
+            mean = mean(Actual.Completed.Days),
+            Q3 = quantile(Actual.Completed.Days, 0.75),
+            max = max(Actual.Completed.Days),
+            QR = (Q3 - Q1),
+            IF1 = Q1 -(QR * 1.5),
+            IF2 = Q3 + (QR * 1.5),
+            OF1 = Q1 - (QR * 3),
+            OF2 = Q3 + (QR * 3))
+
+ds2018 <- b2018 %>% select(Issue.Type, Actual.Completed.Days)%>%
+  group_by(Issue.Type)%>%
+  summarise(min = min(Actual.Completed.Days), 
+            median = median(Actual.Completed.Days),
+            Q1 = quantile(Actual.Completed.Days, 0.25),
+            mean = mean(Actual.Completed.Days),
+            Q3 = quantile(Actual.Completed.Days, 0.75),
+            max = max(Actual.Completed.Days),
+            QR = (Q3 - Q1),
+            IF1 = Q1 -(QR * 1.5),
+            IF2 = Q3 + (QR * 1.5),
+            OF1 = Q1 - (QR * 3),
+            OF2 = Q3 + (QR * 3))
+
+View(ds2016)
+View(ds2017)
+View(ds2018)
+
+# Now let's get the average of all the issue types over the three years. 
+df <- merge(ds2017, ds2016, by ="Issue.Type", all =T)
+df <- merge(df, ds2018, by = "Issue.Type", all =T) 
+df[is.na(df)]<- 0
+View(df)
+
+stats_on_issues <- df %>% 
+  group_by(Issue.Type)%>%
+  summarise(min = (min+ min.x + min.y)/3, 
+            median = (median + median.x + median.y)/3,
+            Q.1 = (Q1 + Q1.x + Q1.y)/3,
+            mean = (mean + mean.x + mean.y)/3,
+            Q.3 = (Q3 + Q3.x + Q3.y)/3,
+            max = (max + max.x + max.y)/3,
+            IQR = (Q.3 - Q.1),
+            IF.1 = Q.1 -(IQR * 1.5),
+            IF.2 = Q.3 + (IQR * 1.5),
+            OF.1 = Q.1 - (IQR * 3),
+            OF.2 = Q.3 + (IQR * 3))
+stats_on_issues[ , -1] <- round(stats_on_issues[,-1], 0)
+View(stats_on_issues)
+
+# Great! We have all the issue types present in the beta data and we can now judge 
+# if the number is do to data entry issue a little better. 
+
+
+oct52 <- oct5
+oct52[which((oct52$Issue.Type == "BEE AND WASP CONTROL") & (oct52$Actual.Completed.Days > 43)), "Actual.Completed.Days"] <- 22
+
+oct52[which((oct52$Issue.Type == "BUILDING MAINTENANCE INADEQUATE") & (oct52$Actual.Completed.Days > 35)), "Actual.Completed.Days"] <- 14
+
+oct52[which((oct52$Issue.Type == "CANAL CLEANING") & (oct52$Actual.Completed.Days > 4)), "Actual.Completed.Days"] <- 2
+
+oct52[which((oct52$Issue.Type == "CAVE IN OR SINK HOLE") & (oct52$Actual.Completed.Days > 86)), "Actual.Completed.Days"] <- 15
+
+oct52[which((oct52$Issue.Type == "CODE ENFORCEMENT CU INSPECTION REQUEST") & (oct52$Actual.Completed.Days > 37)), "Actual.Completed.Days"] <- 14
+
+oct52[which((oct52$Issue.Type == "CONTAINER VIOLATION - COMMERCIAL / MULTI-FAMILY") & (oct52$Actual.Completed.Days > 77)), "Actual.Completed.Days"] <- 16
+
+oct52[which((oct52$Issue.Type == "LANDSCAPING CITY RIGHT OF WAY / MOWING") & (oct52$Actual.Completed.Days > 74)), "Actual.Completed.Days"] <- 19
+
+oct52[which((oct52$Issue.Type == "PARKING - COMMERCIAL VEHICLE ILLEGALLY IN RESIDENTIAL ZONE") & (oct52$Actual.Completed.Days > 29)), 
+      "Actual.Completed.Days"] <- 10
+
+oct52[which((oct52$Issue.Type == "POTHOLE") & (oct52$Actual.Completed.Days > 111)), "Actual.Completed.Days"] <- 22
+
+#ROAD DEBRIS BLOCKING TRAFFIC RIGHT OF WAY
+oct52[which((oct52$Issue.Type == "ROAD DEBRIS BLOCKING TRAFFIC RIGHT OF WAY") & (oct52$Actual.Completed.Days > 231)),
+      "Actual.Completed.Days"] <- 44
+
+#SIDEWALK DAMAGE
+oct52[which((oct52$Issue.Type == "SIDEWALK DAMAGE") & (oct52$Actual.Completed.Days > 156)), "Actual.Completed.Days"] <- 31
+
+#STORM FLOOD/ DRAINAGE
+oct52[which((oct52$Issue.Type == "STORM FLOOD/ DRAINAGE") & (oct52$Actual.Completed.Days > 199)), "Actual.Completed.Days"] <- 35
+
+# STREETS CROSSING
+oct52[which((oct52$Issue.Type == "STREETS CROSSING") & (oct52$Actual.Completed.Days > 1)), "Actual.Completed.Days"] <- 1
+
+# SWALE GRADING / DROP OFF REPAIR
+oct52[which((oct52$Issue.Type == "SWALE GRADING / DROP OFF REPAIR") & (oct52$Actual.Completed.Days > 165)), "Actual.Completed.Days"] <- 23
+
+# TRASH HOLE
+oct52[which((oct52$Issue.Type == "TRASH HOLE") & (oct52$Actual.Completed.Days > 72)), "Actual.Completed.Days"] <- 21
+
+# TREE BLOCKING TRAFFIC SIGNAL/LIGHT (STOP SIGN)
+oct52[which((oct52$Issue.Type == "TREE BLOCKING TRAFFIC SIGNAL/LIGHT (STOP SIGN)") & (oct52$Actual.Completed.Days > 85)), "Actual.Completed.Days"] <- 18
+
+# TREE BRACING REMOVAL / REPAIR
+oct52[which((oct52$Issue.Type == "TREE BRACING REMOVAL / REPAIR") & (oct52$Actual.Completed.Days > 145)), "Actual.Completed.Days"] <- 36
+
+# TREE DOWN  BLOCKING STREET
+oct52[which((oct52$Issue.Type == "TREE DOWN  BLOCKING STREET") & (oct52$Actual.Completed.Days > 90)), "Actual.Completed.Days"] <- 17
+
+# TREE DOWN NOT BLOCKING THE STREET
+oct52[which((oct52$Issue.Type == "TREE DOWN NOT BLOCKING THE STREET") & (oct52$Actual.Completed.Days > 99)), "Actual.Completed.Days"] <- 26
+
+# TREE FELL ON HOUSE
+oct52[which((oct52$Issue.Type == "TREE FELL ON HOUSE") & (oct52$Actual.Completed.Days > 31)), "Actual.Completed.Days"] <- 9
+
+# TREE LEANING
+oct52[which((oct52$Issue.Type == "TREE LEANING") & (oct52$Actual.Completed.Days > 139)), "Actual.Completed.Days"] <- 29
+
+# TREE PEST CONTROL
+oct52[which((oct52$Issue.Type == "TREE PEST CONTROL") & (oct52$Actual.Completed.Days > 45)), "Actual.Completed.Days"] <- 15
+
+# TREE TRIM AND ROOT PRUNING
+oct52[which((oct52$Issue.Type == "TREE TRIM AND ROOT PRUNING") & (oct52$Actual.Completed.Days > 129)), "Actual.Completed.Days"] <- 29
+
+# ILLEGAL DUMPING / LITTER
+oct52[which((oct52$Issue.Type == "ILLEGAL DUMPING / LITTER") & (oct52$Actual.Completed.Days > 56)), "Actual.Completed.Days"] <- 14
+
+# NO BUSINESS TAX RECEIPT / CERTIFICATE OF USE
+oct52[which((oct52$Issue.Type == "NO BUSINESS TAX RECEIPT / CERTIFICATE OF USE") & (oct52$Actual.Completed.Days > 37)), "Actual.Completed.Days"] <- 13
+
+# TREE STUMP REMOVAL/ GRINDING
+oct52[which((oct52$Issue.Type == "TREE STUMP REMOVAL/ GRINDING") & (oct52$Actual.Completed.Days > 176)), "Actual.Completed.Days"] <- 29
+
+# POULTRY (CHICKEN) OR GRAZING ANIMAL
+oct52[which((oct52$Issue.Type == "POULTRY (CHICKEN) OR GRAZING ANIMAL") & (oct52$Actual.Completed.Days > 32)), "Actual.Completed.Days"] <- 11
+
+# OVERGROWN LOT
+oct52[which((oct52$Issue.Type == "OVERGROWN LOT") & (oct52$Actual.Completed.Days > 34)), "Actual.Completed.Days"] <- 11
+
+# VACANT / UNSECURED STRUCTURE
+oct52[which((oct52$Issue.Type == "VACANT / UNSECURED STRUCTURE") & (oct52$Actual.Completed.Days > 33)), "Actual.Completed.Days"] <- 9
+
+# NOISE VIOLATION
+oct52[which((oct52$Issue.Type == "NOISE VIOLATION") & (oct52$Actual.Completed.Days > 35)), "Actual.Completed.Days"] <- 11
+
+# ILLEGAL CONSTRUCTION
+oct52[which((oct52$Issue.Type == "ILLEGAL CONSTRUCTION") & (oct52$Actual.Completed.Days > 36)), "Actual.Completed.Days"] <- 12
+
+# ILLEGAL MECHANICAL REPAIRS
+oct52[which((oct52$Issue.Type == "ILLEGAL MECHANICAL REPAIRS") & (oct52$Actual.Completed.Days > 32)), "Actual.Completed.Days"] <- 10
+
+# TREE REMOVAL WITHOUT PERMIT
+oct52[which((oct52$Issue.Type == "TREE REMOVAL WITHOUT PERMIT") & (oct52$Actual.Completed.Days > 37)), "Actual.Completed.Days"] <- 12
+
+# ILLEGAL UNITS
+oct52[which((oct52$Issue.Type == "ILLEGAL UNITS") & (oct52$Actual.Completed.Days > 35)), "Actual.Completed.Days"] <- 12
+
+# COM OTHER
+oct52[which((oct52$Issue.Type == "COM OTHER") & (oct52$Actual.Completed.Days > 6)), "Actual.Completed.Days"] <- 1
+
+# BOATS / RV'S / TRAILERS
+oct52[which((oct52$Issue.Type == "BOATS / RV'S / TRAILERS") & (oct52$Actual.Completed.Days > 33)), "Actual.Completed.Days"] <- 10
+
+# ILLEGAL STORAGE / JUNK IN YARD
+oct52[which((oct52$Issue.Type == "ILLEGAL STORAGE / JUNK IN YARD") & (oct52$Actual.Completed.Days > 34)), "Actual.Completed.Days"] <- 12
+
+# ABANDONED VEHICLE - PRIVATE
+oct52[which((oct52$Issue.Type == "ABANDONED VEHICLE - PRIVATE") & (oct52$Actual.Completed.Days > 35)), "Actual.Completed.Days"] <- 13
+
+# PARKING - ON UNIMPROVED SURFACES
+oct52[which((oct52$Issue.Type == "PARKING - ON UNIMPROVED SURFACES") & (oct52$Actual.Completed.Days > 39)), "Actual.Completed.Days"] <- 17
+
+# VACANT / UNSECURED STRUCTURE
+oct52[which((oct52$Issue.Type == "VACANT / UNSECURED STRUCTURE") & (oct52$Actual.Completed.Days >33)), "Actual.Completed.Days"] <- 9
+
+#SIGNS WITHOUT PERMIT
+oct52[which((oct52$Issue.Type == "SIGNS WITHOUT PERMIT") & (oct52$Actual.Completed.Days > 33)), "Actual.Completed.Days"] <- 12
+
+# MANHOLE / UTILITY COVER
+oct52[which((oct52$Issue.Type == "MANHOLE / UTILITY COVER") & (oct52$Actual.Completed.Days > 147)), "Actual.Completed.Days"] <- 28
+
+# MIAMI TROLLEY - ON DEMAND TRANSPORTATION SERVICE COMPLAINT
+oct52[which((oct52$Issue.Type == "MIAMI TROLLEY - ON DEMAND TRANSPORTATION SERVICE COMPLAINT") & (oct52$Actual.Completed.Days > 175)), "Actual.Completed.Days"] <- 35
+
+# GARBAGE - MISSED
+oct52[which((oct52$Issue.Type == "GARBAGE - MISSED") & (oct52$Actual.Completed.Days > 10)), "Actual.Completed.Days"] <- 3
+
+# FIRE CU INSPECTION REQUEST
+#oct52[which((oct52$Issue.Type == "FIRE CU INSPECTION REQUEST") & (oct52$Actual.Completed.Days > 10)), "Actual.Completed.Days"] <- 3
+# I don't want to change this some are closed on some days but others are closed only a few days within eachother. This would
+# mess up the data. 
+
+
+View(oct52)
+
+# Create the delayed variable: 
+oct52$delayed <- oct52$Goal.Days - oct52$Actual.Completed.Days
+
+delayed.time <- function(x){
+  #na.omit(x)
+  for(i in 1:length(x)){
+    if(x[i] >= 0){
+      x[i]<- "0"
+    }else{
+      x[i]<- "1"
+    }
+  } 
+  print(x)
+}
+
+oct52$D <- delayed.time(oct52$delayed)
+
+View(oct52)
+
+write.csv(oct52, "BD_Oct10.csv")
