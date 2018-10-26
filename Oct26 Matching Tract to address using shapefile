@@ -1,0 +1,38 @@
+# October 26 
+# Matching addresses to census tracts
+
+# Trying this new method suggested by one of the memebers of the data science
+# team. 
+
+# Load in the call data and delete the rows with NAs
+bd_oct26 <- na.omit(BD_Oct10)
+rm(BD_Oct10)
+
+# https://commercedataservice.github.io/tutorial_311_trees_p1/
+# https://mgimond.github.io/Spatial/data-manipulation-in-r.html 
+# Read in the data from the miami tract 2010 file and set wd
+
+install.packages("rgdal")
+library(rgdal)
+
+#After downloading from the website I move it into my working directory.
+# I then save it as "myfile" 
+myfile <- "F:/Geo Batch adds/Tract_2010.zip"
+unzip(myfile, exdir = getwd())
+
+tracts <- readOGR("F:/Geo Batch adds/Tract_2010.shp", "Tract_2010")
+
+# Examine the file. 
+# The proj4string is the coordinate system 
+summary(tracts)
+names(tracts)
+
+# Now we need to get the tracts per address
+names(bd_oct26)
+bd.sp <- SpatialPoints(coord = bd_oct26[ ,c("Longitude", "Latitude")], 
+                       proj4string = tracts@proj4string)
+bd_tracts_oct26<-cbind(bd_oct26, over(x = bd.sp, y = tracts))
+View(bd_tracts_oct26)
+# Currently at 96468 observations
+bd_tracts_oct26 <- bd_tracts_oct26[!is.na(bd_tracts_oct26$TRACTCE10),]
+# aLL HAVE A MATCH.
