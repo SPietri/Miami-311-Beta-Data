@@ -1,0 +1,91 @@
+# z score  = raw score - mean /stdev
+# https://researchbasics.education.uconn.edu/standardized-scores/# 
+# http://influentialpoints.com/Training/z_scores_use_and_misuse.htm 
+# https://www.wikihow.com/Calculate-Z-Scores 
+# http://jeromyanglim.blogspot.com/2009/03/calculating-composite-scores-of-ability.html 
+# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5459482/ 
+# https://books.google.com/books?id=SdrLBQAAQBAJ&pg=PA156&lpg=PA156&dq=composite+z+score&source=bl&ots=CSbdYV2lz3&sig=lXQxrwSRVGtNt6JVg9t81DcX3NU&hl=en&sa=X&ved=2ahUKEwjdrN7Kx6TeAhVs2oMKHdg-DuMQ6AEwEXoECAcQAQ#v=onepage&q=composite%20z%20score&f=false 
+
+View(bd.tracts_oct26)
+library(dplyr)
+
+# Creating function:
+myzscore <- function(x){
+  for (i in 1:length(x)){
+    x[i] <- (x[i] - mean(x))/sd(x)
+  }
+  return(x)
+}
+
+#Checking function...
+c <- c(1,2,3,4,5,6)
+myzscore(c)
+#sd(c) = 1.87
+#mean = 3.5
+# It worked
+
+bd.tracts_oct26 %>% 
+  select(TRACTCE10, D, delayed)%>%
+  #group_by(TRACTCE10)%>%
+  #summarize(mean = mean(delayed))
+  mutate(z = myzscore(delayed), z_bi = myzscore(D))
+# The above worked but not what I want...
+
+### PROBLEM: I can't combine z scores of several calls in a tract
+### into one "averaged z score" for the entire tract. Can't treat 
+### a set of z scores as a z score. 
+
+### SOLUTION: Per this study, you could sum the z scores using simple averaging.
+### I'm doing this per tract. 
+
+composite_delayed_score<- bd.tracts_oct26 %>%
+  select(TRACTCE10, D, delayed)%>%
+  mutate(z = myzscore(delayed))%>%
+  group_by(TRACTCE10)%>%
+  summarize(stand_composite_score = sum(z))
+
+# i THOUGHT PERHAPS TO GROUP THEM BY THE issue type first but there is no need because they are 
+# standardized by the z score
+# NO: composite_score<- bd.tracts_oct26 %>%
+  #select(Issue.Type, delayed, TRACTCE10)%>%
+  #group_by(Issue.Type)%>%
+  #mutate(z = myzscore(delayed))%>%
+  #ungroup()%>%
+  #group_by(TRACTCE10)%>%
+  #summarize(stand_composite_score = sum(z))
+  
+# Now I need to bring in the census data that I have from the previous miami data. 
+# I'm using my old add zero function to add zeros to the census data set
+add.zero<-function(x){
+  for(i in 1:length(x)){
+    if(nchar(x[i])==3){
+      x[i] <- paste("000",x[i], sep = "")
+    }
+    else if(nchar(x[i])==4){
+      x[i] <- paste("00", x[i], sep = "")
+    }
+    else if(nchar(x[i])==5){
+      x[i]<- paste("0", x[i], sep = "")
+    }
+    else if(nchar(x[i])==6){
+      x[i]<- substr(x[i], 1,nchar(x[i]))
+    }
+  }
+  print(x)
+}
+
+census$tract <- add.zero(census$tract)
+
+# now let's create a vector that is just the tracts present in the census data. Then I want to filter
+# the composite score data for just those tracts (composite). Lastly, I'm going to merge the data. 
+tracts<- census$tract
+composite<- composite_delayed_score %>%
+  filter(TRACTCE10 %in% tracts)
+census2<- merge(census, composite, by.x = "tract", by.y = "TRACTCE10")
+View(census2)
+View(composite)
+
+# Remember to check if they merged correctly
+
+#Save it
+write.csv(census2, "BD_census_Oct26.csv")
