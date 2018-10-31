@@ -1,0 +1,32 @@
+library(dplyr)
+
+per_tract<- bd26 %>%
+  group_by(TRACTCE10)%>%
+  summarise(n= n())
+
+# Load in the other census data and merge by TRACTCE10
+# i NEED TO ADD ZEROS TO THE TRACT VALUES. 
+
+add.zero<-function(x){
+  for(i in 1:length(x)){
+    if(nchar(x[i])==3){
+      x[i] <- paste("000",x[i], sep = "")
+    }
+    else if(nchar(x[i])==4){
+      x[i] <- paste("00", x[i], sep = "")
+    }
+    else if(nchar(x[i])==5){
+      x[i]<- paste("0", x[i], sep = "")
+    }
+    else if(nchar(x[i])==6){
+      x[i]<- substr(x[i], 1,nchar(x[i]))
+    }
+  }
+  print(x)
+}
+
+head(per_tract)
+BD_census_Oct26$tract<- add.zero(BD_census_Oct26$tract)
+BD_census_Oct26<- merge(BD_census_Oct26, per_tract, by.x = "tract", by.y = "TRACTCE10")
+View(BD_census_Oct26)
+write.csv(BD_census_Oct26, "BD_census_Oct26.csv")
