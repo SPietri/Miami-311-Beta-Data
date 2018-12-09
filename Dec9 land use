@@ -1,0 +1,42 @@
+# okay I need to spread the data and then merge it with the combined data set. 
+
+library(tidyverse)
+library(dplyr)
+# read.csv()
+
+try1 <- land_data %>%
+  select(TRACT2000, RECLASS4, P_LU_area)
+
+# The code below will seperate the column
+temporary <- spread(try1, RECLASS4, P_LU_area, fill = 0)
+head(temporary)
+
+# It appears this has only 77 tracts instead of 100 something. Let's do a sanity check. 
+land_data %>%
+  group_by(TRACT2000)%>%
+  summarize(n=n())
+
+# Yep. there are only 77 tracts. I wonder how many calls this will leave us with? Anyway, 
+# we need to merge this new variable with the combined data set with all the variables. 
+#read.csv()
+
+# I need to select only the rows that are in the temporary set'
+var2 <- variables %>%
+  filter(tract %in% temporary$TRACT2000)
+
+merged.data <- merge(var2, temporary, by.x = "tract", by.y = "TRACT2000")
+View(merged.data)
+
+# Lets change the names of the columns. 
+#1=residential
+#2=industrial
+#3=commercial
+#4=conservation, recreation, & water
+#5=transportation (roads, highways, railroads, etc.)
+#0=everything else.   
+names(merged.data)[43]<- "other"
+names(merged.data)[44]<- "residential"
+names(merged.data)[45]<- "industrial"
+names(merged.data)[46]<- "commercial"
+names(merged.data)[47]<- "conservation"
+names(merged.data)[48]<- "transportation"
