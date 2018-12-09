@@ -40,3 +40,18 @@ names(merged.data)[45]<- "industrial"
 names(merged.data)[46]<- "commercial"
 names(merged.data)[47]<- "conservation"
 names(merged.data)[48]<- "transportation"
+
+# Went from 107 tracts to 62 after merging. 
+# Going to drop some variables. 
+data <- merged.data[ , -15]
+data$college <- data$some_college +data$associate
+data <- data[ , -c(20, 21)]
+data <- data[ , -c(4, 5, 6,7, 8, 10, 11, 12,17, 22, 24, 25, 26,27, 28,
+                   29, 30, 31, 32, 33, 34, 38)]
+data$log_med_income <- log(data$med_income)
+head(data$log_med_income)
+data <- data[ , -3]
+
+
+write.csv(merged.data, "variables_dec9.csv")
+write.csv(data, "variables2_dec9.csv")
