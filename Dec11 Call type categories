@@ -1,0 +1,15 @@
+#1.     Total Calls
+#2.     Road & Bridge (RB) Calls
+#3.     Communication (C) Calls
+#4.     Traffic Engineering & Signal (TES) Calls
+#5.     RB+C Calls
+#6.     RB+TES Calls
+#7.     RB+TES+C Calls
+
+# Idea! so our beta data is again experiencing some problems. 
+# I think that it is ok to just grab the call data from the Dade county
+# old data that is tied to the tracts we currently have. We know all the tracts we
+# currently have are all in the city of Miami. This should solve the problem. 
+# Also we can just use all the data since we don't care about the delayed variable anymore
+
+# Load in the data and the packages (dplyr and tidyverse)
