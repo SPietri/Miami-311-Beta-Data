@@ -13,3 +13,29 @@
 # Also we can just use all the data since we don't care about the delayed variable anymore
 
 # Load in the data and the packages (dplyr and tidyverse)
+
+# Filter for only the calls located in the Miami city data
+call_data <- August24calldata %>%
+  filter(TRACTCE10 %in% variables2_dec9$tract)
+
+# Remove data we don't need anymore
+rm(August24calldata)
+
+# Look at cloumn names and remove what information we don't need anymore
+names(call_data)
+call_data <- call_data[ , -c(8, 11, 12, 13, 14,15,16,17,20, 27,28)]
+
+# These are the definitions for the groups
+#RB à public_works_road_and_bridges,
+#C -> Communications department,
+#TES-> combine public works traffic signals + public works traffic engineering.
+
+infastructure <- call_data %>%
+  group_by(TRACTCE10) %>%
+  summarize(per_tract = n(), C= sum(category == "Communications_Department"), 
+            RB = sum(category == "Public_Works_Road_And_Bridges_16_60"), 
+            TS = sum(category == "Public_Works_traffic_Signals_And_Signs_15_60"),
+            TE = sum(category == "Public_Works_Traffic_Engineering_10_60"),
+            TES = TS +TE)
+# Now remove TS AND TE and merge this to the variables data set
+names()
