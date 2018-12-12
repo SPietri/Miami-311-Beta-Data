@@ -38,4 +38,22 @@ infastructure <- call_data %>%
             TE = sum(category == "Public_Works_Traffic_Engineering_10_60"),
             TES = TS +TE)
 # Now remove TS AND TE and merge this to the variables data set
-names()
+names(infastructure)
+infastructure <- infastructure[ , -c(5, 6)]
+
+# remove the per_tract column from the variables data
+names(variables2_dec9)
+variables2_dec9 <- variables2_dec9[ , -17]
+
+variables_dec12<- merge(variables2_dec9, infastructure, by.x = "tract", by.y = "TRACTCE10")
+names(variables_dec12)
+head(variables_dec12)
+
+# Create the merged variables
+variables_dec12 <- variables_dec12 %>%
+  mutate(RB_C = RB + C, 
+         RB_TES = RB + TES, 
+         TES_C_RB = TES + C +RB)
+
+# Save to file
+write.csv(variables_dec12, "variables_dec12.csv")
