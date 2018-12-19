@@ -46,3 +46,46 @@ summary(m1 <- glm.nb(TES_C_RB ~
                        renter + eight_to_24 + log_pop + other +
                        industrial + commercial + conservation + geo_spatial_lag, 
                      dat = variables_dec12))
+                     
+
+# nOW FOR vARIATIONS
+# Race ethnicity, education, cv
+summary(m1 <- glm.nb(TES ~ 
+                       perc_black  + perc_asian + perc_latino +perc_other + 
+                       college + highschool + bachelor + graduate +
+                       renter + eight_to_24 + log_pop + other +
+                       industrial + commercial + conservation + geo_spatial_lag, 
+                     dat = variables_dec12))
+
+# Race, income, cv
+summary(m1 <- glm.nb(TES ~ 
+                       perc_black  + perc_asian + perc_latino +perc_other + 
+                       renter + eight_to_24 + log_pop + other +
+                       industrial + commercial + conservation + geo_spatial_lag + 
+                       log_med_income, 
+                     dat = variables_dec12))
+
+# Education + Income + cvs
+summary(m1 <- glm.nb(TES ~ 
+                       college + highschool + bachelor + graduate +
+                       renter + eight_to_24 + log_pop + other +
+                       industrial + commercial + conservation + geo_spatial_lag + 
+                       log_med_income, 
+                     dat = variables_dec12))
+
+# My recipe 
+summary(m1 <- glm.nb(TES_C_RB ~ 
+                       perc_black  + perc_asian + perc_latino + 
+                       college + highschool + bachelor + graduate +
+                       renter + eight_to_24 +
+                       industrial + commercial + conservation + 
+                       geo_spatial_lag + log_med_income, 
+                     dat = variables_dec12))
+
+# cVS AND RACE
+summary(m1 <- glm.nb(per_tract ~ 
+                       perc_black  + perc_asian + perc_latino +
+                       renter + eight_to_24 +
+                       industrial + commercial + conservation + 
+                       geo_spatial_lag + log_med_income, 
+                     dat = variables_dec12))
