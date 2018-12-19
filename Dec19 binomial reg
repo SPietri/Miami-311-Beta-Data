@@ -1,0 +1,48 @@
+# Negative binomial regresssion 
+#How to start the modeling process
+
+#For the DV, begin with Tocal Calls and then move to RB+TES+C; 
+#then to RB+TES; then to RB+C; then to RB; then to C; then to TES.
+
+#For the IVs, beging with race/ethnicity, 
+#Then add education
+#Then add income
+#Then add CVs
+#To see how the explanatory power of the models change by IV, you may want to include different combinations of IVs in the models 
+#such as race/ethnicity + education (+CVs), race/ethincity + income  (+CVs), education + income  (+CVs)
+
+# Ok So I will load in the data and then start with total calls per the instructions. 
+# https://stats.idre.ucla.edu/r/dae/negative-binomial-regression/
+
+# Starting with race
+summary(m1 <- glm.nb(RB_TES ~ 
+                    perc_black + perc_asian +perc_latino +perc_other, 
+                     dat = variables_dec12))
+# Compare models with 
+m1.u1<- update(m1, . ~ . - perc_asian)
+anova(m1, m1.u1)
+# perc_asian is statistically significant
+# black significant
+# latino sig
+# asian sig. 
+
+# Adding education on total calls
+summary(m1 <- glm.nb(TES_C_RB ~ 
+                       perc_black  + perc_asian + perc_latino +perc_other + 
+                       college + highschool + bachelor + graduate, 
+                     dat = variables_dec12))
+
+# Add in income
+summary(m1 <- glm.nb(TES_C_RB ~ 
+                       perc_black  + perc_asian + perc_latino +perc_other + 
+                       college + highschool + bachelor + graduate + log_med_income, 
+                     dat = variables_dec12))
+
+
+# Add in CV's 
+summary(m1 <- glm.nb(TES_C_RB ~ 
+                       perc_black  + perc_asian + perc_latino +perc_other + 
+                       college + highschool + bachelor + graduate +
+                       renter + eight_to_24 + log_pop + other +
+                       industrial + commercial + conservation + geo_spatial_lag, 
+                     dat = variables_dec12))
