@@ -82,3 +82,34 @@ write.csv(data, "variables2_dec26.csv")
 
 # Get the summary statistics
 dfSummary(data)
+
+summary(m1 <- glm.nb(per_tract ~ 
+                       perc_black  + perc_asian + perc_latino +perc_other
+                     dat = data))
+# Add in education
+summary(m1 <- glm.nb(per_tract ~ 
+                       perc_black  + perc_asian + perc_latino +perc_other + 
+                       college + highschool + bachelor + graduate, 
+                     dat = data))
+
+# Add in income
+summary(m1 <- glm.nb(per_tract ~ 
+                       perc_black  + perc_asian + perc_latino +perc_other + 
+                       college + highschool + bachelor + graduate + log_med_income, 
+                     dat = data))
+
+
+# Add in CV's 
+summary(m1 <- glm.nb(per_tract ~ 
+                       perc_black  + perc_asian + perc_latino +perc_other + 
+                       college + highschool + bachelor + graduate + log_med_income + 
+                       renter + eight_to_24 + log_pop + other +
+                       industrial + commercial + conservation + geo_spatial_lag, 
+                     dat = data))
+# Just the CVs
+summary(m1 <- glm.nb(per_tract ~ 
+                       renter + eight_to_24 + log_pop + other +
+                       industrial + commercial + conservation + geo_spatial_lag, 
+                     dat = data))
+
+
