@@ -1,0 +1,84 @@
+# Re-doing everything
+# 1 - remove rows from the old variable chart 
+# 2 - select the tracts from the miami data 
+# put in the land use 
+# put in the calls per tract
+# create the new variables and remove what she wants
+# re-do the table
+
+#  August24calldata <- read_csv("F:/August24calldata.csv")
+# BD_census_Oct26_1_ <- read_csv("F:/BD_census_Oct26 (1).csv", 
+#+     col_types = cols(mean_income = col_skip(), 
+#                       +         per_tract = col_skip(), stand_composite_score = col_skip()))
+
+# Select only the tracts available in the bd from the call data
+call_data <- August24calldata %>%
+  filter(TRACTCE10 %in% BD_census_Oct26_1_$tract)
+
+# Now add the types of calls 
+names(call_data)
+call_data <- call_data[ , -c(8, 11, 12, 13, 14,15,16,17,20, 27,28)]
+
+infastructure <- call_data %>%
+  group_by(TRACTCE10) %>%
+  summarize(per_tract = n(), C= sum(category == "Communications_Department"), 
+            RB = sum(category == "Public_Works_Road_And_Bridges_16_60"), 
+            TS = sum(category == "Public_Works_traffic_Signals_And_Signs_15_60"),
+            TE = sum(category == "Public_Works_Traffic_Engineering_10_60"),
+            TES = TS +TE)
+
+# Now remove TS AND TE and merge this to the variables data set
+names(infastructure)
+infastructure <- infastructure[ , -c(5, 6)]
+
+variables <- merge(BD_census_Oct26_1_, infastructure, by.x = "tract", by.y = "TRACTCE10")
+names(variables)
+head(variables)
+
+# Create the merged variables
+variables <- variables %>%
+  mutate(RB_C = RB + C, 
+         RB_TES = RB + TES, 
+         TES_C_RB = TES + C +RB)
+
+View(variables)
+
+#Create the land use variable
+# land_data <- read_csv("final2.csv")
+
+try1 <- land_data %>%
+  select(TRACT2000, RECLASS4, P_LU_area)
+
+temporary <- spread(try1, RECLASS4, P_LU_area, fill = 0)
+head(temporary)
+
+var <- variables
+
+merged.data <- merge(var, temporary, by.x = "tract", by.y = "TRACT2000", all.x = TRUE)
+View(merged.data)
+
+# rename the columns 
+names(merged.data)[47]<- "other"
+names(merged.data)[48]<- "residential"
+names(merged.data)[49]<- "industrial"
+names(merged.data)[50]<- "commercial"
+names(merged.data)[51]<- "conservation"
+names(merged.data)[52]<- "transportation"
+
+names(merged.data)
+names(data)
+
+# Drop dome variables
+data <- merged.data[ , -14]
+data$college <- data$some_college +data$associate
+data$log_med_income <- log(data$med_income)
+
+data <- data[ , -c(3, 4, 5, 6,7, 8, 9, 10, 11, 16,19, 20, 23, 25, 26,27, 28,
+                   29, 30, 31, 32, 33, 34, 35, 38)]
+
+write.csv(data, "variables2_dec26.csv")
+
+
+
+# Get the summary statistics
+dfSummary(data)
