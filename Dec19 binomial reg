@@ -42,7 +42,12 @@ summary(m1 <- glm.nb(TES_C_RB ~
 # Add in CV's 
 summary(m1 <- glm.nb(TES_C_RB ~ 
                        perc_black  + perc_asian + perc_latino +perc_other + 
-                       college + highschool + bachelor + graduate +
+                       college + highschool + bachelor + graduate + log_med_income + 
+                       renter + eight_to_24 + log_pop + other +
+                       industrial + commercial + conservation + geo_spatial_lag, 
+                     dat = variables_dec12))
+# Just the CVs
+summary(m1 <- glm.nb(TES_C_RB ~ 
                        renter + eight_to_24 + log_pop + other +
                        industrial + commercial + conservation + geo_spatial_lag, 
                      dat = variables_dec12))
