@@ -1,0 +1,62 @@
+# HS Project 
+# Descriptive statistics 
+
+# Get the city of miami tracts only from the call data. 
+
+miami_only <- HS_calls %>%
+  filter(City == "City_of_Miami")
+# The number of observations is verified. 
+
+# Now lets see how many tracts we have and what they are.
+# Condense the tracts
+tracts <- miami_only %>%
+  select(TRACTCE10)%>%
+  group_by(TRACTCE10)%>%
+  summarize(n = n())
+
+# Next filter the tracts in the census data 
+census_miami <- HS_census %>%
+  filter(TRACTCE10 %in% tracts$TRACTCE10)
+
+# There are two less tracts in the census data. I also need to make sure
+# that all tracts have complete information available for use.
+View(census_miami)
+# There are def some fishy tracts but this is not my data call. 
+
+# Re filter the tracts in the call data
+miami_only2 <- miami_only %>%
+  filter(TRACTCE10 %in% census_miami$TRACTCE10)
+# nOW THER ARE 64322 OBS
+# And 113 tracts
+
+#okay lets do some data stuff
+# break the calls down by year
+View(miami_only2)
+
+# My package includes a function that will seperate the year and the month
+# so I can draw some statistics on it 
+fix_year<- function(v){
+  created_year<- unlist(lapply(v, function(v){
+    if(nchar(v)==6){
+      substring((v[which(nchar(v)==6)]),1,4)}
+    else if(nchar(v)==5){
+      substring((v[which(nchar(v)==5)]), 1,4)}
+  }))
+  print(created_year, quotes = FALSE)}
+miami_only2$year <- fix_year(miami_only2$Created.Year.Month)
+
+# Now we can break it down. 
+# years and total calls
+call_type <- miami_only2 %>% 
+  select(year, Case.Owner)%>%
+  group_by(year, Case.Owner)%>%
+  summarise(n = n())
+#Year
+#1 2013  13256
+#2 2014  13798
+#3 2015  11459
+#4 2016  12108
+#5 2017  11865
+#6 2018   1836
+
+View(call_type)
