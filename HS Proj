@@ -60,3 +60,94 @@ call_type <- miami_only2 %>%
 #6 2018   1836
 
 View(call_type)
+
+#####################################################################################################################
+# Okay now let's get the new census variables
+install.packages("tidycensus")
+library(tidycensus)
+
+census_api_key("fb054896797b80e2bf77f1bab8b8fac0e4820c25")
+
+acs_var <- c("DP03_0092E", "DP03_0065E","DP05_0003E", "DP05_0002E","DP05_0073E","DP05_0075E","DP05_0074E",
+             "DP05_0072E","DP05_0066E","DP05_0077E","DP02_0003E","DP04_0045E","DP04_0047E", 
+             "DP02_0093E","DP02_0094E","DP02_0095E","DP02_0063E","DP02_0061E", "DP02_0064E",
+             "DP02_0065E","DP02_0062E","DP05_0007E","DP05_0008E","DP05_0021E",
+             "DP03_0128E","DP03_0009E","DP03_0088E","DP02_0086E")
+
+acs_var <- c("DP03_0092E","DP03_0065E","DP05_0003E","DP05_0002E","DP05_0073E","DP05_0075E","DP05_0074E",
+             "DP05_0072E","DP05_0066E","DP05_0077E","DP02_0003E","DP04_0045E","DP04_0047E","DP02_0093E", 
+             "DP02_0094E","DP02_0095E","DP02_0063E","DP02_0061E","DP02_0064E","DP02_0065E","DP02_0062E",
+             "DP05_0007E","DP05_0008E","DP05_0021E","DP03_0005E","DP03_0088E",
+             "DP02_0086E")
+
+col_names <- c("DP03_0092E" = "med_income",
+               "DP03_0065E" = "mean_income",
+               "DP05_0003E" = "female",
+               "DP05_0002E"= "male",
+               "DP05_0073E" = "black",
+               "DP05_0075E"= "asian",  
+               "DP05_0074E"= "native",
+               "DP05_0072E" = "white",
+               "DP05_0066E" = "latino",
+               "DP05_0077E"= "other",
+               "DP02_0003E" = "house_with_child", 
+               "DP04_0045E" = "occupied_house",
+               "DP04_0047E" = "renter",   
+               "DP02_0093E" = "foreign", 
+               "DP02_0094E" = "naturalized", 
+               "DP02_0095E" = "non_citizen",
+               "DP02_0063E" = "associate", 
+               "DP02_0061E" = "highschool",
+               "DP02_0064E" = "bachelor",
+               "DP02_0065E" = "graduate",
+               "DP02_0062E" = "some_college",
+               "DP05_0007E" = "year_15_to_19",
+               "DP05_0008E" = "year_20_to_24", 
+               "DP05_0021E" = "year_65_up",
+               #"DP03_0128E" = "perc_under_poverty",
+               "DP03_0005E" = "unemployment_rate",
+               "DP03_0088E" = "per_cap_income",
+               "DP02_0086E" = "tot_pop",
+               "GEOID" = "tract",
+               "NAME"= "county")
+# Substitution: Estimate!!EMPLOYMENT STATUS!!Population 16 years and over!!In labor force!!Civilian labor force!!Unemployed
+
+
+select_variable_sf1 <- c(land_area = "AREALAND",
+                         water_area = "AREAWATR")
+
+fl_acs <- get_acs(geography = "tract",
+                  variables = acs_var, 
+                  state = "FL",
+                  year = 2016, 
+                  output = "wide")
+
+fl <- fl_acs %>% select(GEOID, NAME, acs_var) %>% filter(grepl("Miami-Dade", NAME))
+
+
+library(plyr)
+library(data.table)
+
+census_data <- fl
+View(census_data)
+names(census_data)
+library(plyr)
+census_data <- rename(census_data, col_names)
+
+census_data <- census_data %>% mutate(tract = substr(tract, start = 6, stop = 11))
+View(census_data)
+
+#remove the zeros
+practice <- tail(census_data$tract, 25)
+sub("^0+", "", practice)
+
+census_data$TRACTCE10 <- sub("^0+", "", census_data$tract)
+
+# Okay. Now we need to filter for the tracts in the census_miami data we gathered earlier. 
+census_miami_raw <- census_data %>%
+  select(-tract) %>%
+  filter(TRACTCE10 %in% census_miami$TRACTCE10)
+
+write.csv(census_miami_raw, "HS_census_raw.csv")
+write.csv(census_miami, "HS_census_percents.csv")
+write.csv(miami_only2, "HS_miami_calls.csv")
