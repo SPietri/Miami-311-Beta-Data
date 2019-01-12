@@ -151,3 +151,85 @@ census_miami_raw <- census_data %>%
 write.csv(census_miami_raw, "HS_census_raw.csv")
 write.csv(census_miami, "HS_census_percents.csv")
 write.csv(miami_only2, "HS_miami_calls.csv")
+
+#######################################################################################################################################
+# NORMALIZE
+# Normalize the data. 
+
+# What I can see from HS code is to normalize the data you want to
+# 1) vi = the feature OR the variable 
+# 2) pi = the pop ulation of the tract
+# 3) you want to multiply these together 
+# 4) then create a combined sum for the feature using all tracts 
+# 5) then divide the answer found in #3 by the answer in #4 
+# That will give you the normalized value
+
+# Let's Go! But first I need to know which variables we are doing this for...
+# I'm importing the hs_census_raw file as "raw" 
+# HS codes beautigully so I am going to follow her code. She uses the function mutate and saves the total poulation as
+# is own object value. The only problem I see if that, I'm not sure If I am advanced enough to create a function for this.We
+# will try. 
+
+# The function needs to 
+# 1) grab the feature
+# 2) multiply it by the population
+# 3) make that a new variable
+# 4) sum that new variable
+# 5) divide the variable created in 3 by the one created in 4
+# 6) and save that as a new variable in the data set
+# 7) have it iterate over all the columns. 
+# A good idea here would have been to use purr but honestl y I have no time
+
+normalize <- function(dataset, feature, population, coltitle ="new_name"){
+attach(dataset)
+x <- feature * population
+sum <- sum(x)
+dataset <- mutate(dataset,
+                  name = x/sum)
+colnames(dataset)[which(colnames(dataset)== "name")]<- paste("norm", coltitle, sep = "_")
+View(dataset)
+}
+
+norm2 <- function(dataset, feature, population, coltitle ="new_name"){
+  x <- feature * population
+  sum <- sum(as.numeric(x))
+  dataset <- mutate(dataset,
+                    name = x/sum)
+  colnames(dataset)[which(colnames(dataset)== "name")]<- paste("norm", coltitle, sep = "_")
+  View(dataset)
+  print(dataset)
+}
+
+
+# Data cleaning
+raw<- raw%>%
+  mutate(college = associate + bachelor)
+raw<- raw[raw$TRACTCE10 != "981000",]
+
+raw2 <- raw[, c(3, 5:12, 20, 22, 27:30)]
+raw <- raw2
+rm(raw2)
+safety <- raw
+raw <- safety
+
+#[1] "med_income"        "female"           
+#[3] "male"              "black"            
+#[5] "asian"             "native"           
+#[7] "white"             "latino"           
+#[9] "other"             "highschool"       
+#[11] "graduate"          "unemployment_rate"
+#[13] "per_cap_income"    "tot_pop"          
+#[15] "TRACTCE10"
+
+# Let's do this! 
+raw2 <- norm2(raw2, raw$per_cap_income, raw$tot_pop, "per_cap_income")
+write.csv(raw2, "HS_norm_census.csv")
+
+# Now let's create a descriptive stats table
+
+
+
+
+practice <- head(raw)
+p <- normalize(practice, med_income, tot_pop, "income")
+head(p)
