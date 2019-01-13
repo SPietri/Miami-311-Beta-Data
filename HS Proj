@@ -461,3 +461,89 @@ HS_census_raw <- norm2(HS_census_raw,
                            HS_census_raw$college, 
                            HS_census_raw$tot_pop, 
                            "college")
+                           
+#######################################################################################################################################
+# Okay for the redo
+safe <-calls
+tracts <- unique(hs_calls$TRACTCE10)
+
+#wE need to remove the leading zeros in the tracts
+tracts <- sub("^0+", "", tracts)
+
+calls <- calls %>%
+  filter(TRACTCE10 %in% tracts)
+
+# Re-do the stats on the years...
+fix_year<- function(v){
+  created_year<- unlist(lapply(v, function(v){
+    if(nchar(v)==6){
+      substring((v[which(nchar(v)==6)]),1,4)}
+    else if(nchar(v)==5){
+      substring((v[which(nchar(v)==5)]), 1,4)}
+  }))
+  print(created_year, quotes = FALSE)}
+
+calls$year <- fix_year(calls$Created.Year.Month)
+
+calls %>% 
+  select(year)%>%
+  group_by(year)%>%
+  summarise(n = n())
+
+#1 2013  13244
+#2 2014  13792
+#3 2015  11451
+#4 2016  12086
+#5 2017  11844
+#6 2018   1835
+
+issue <- calls %>% 
+  select(year, Issue.Type)%>%
+  group_by(year)%>%
+  summarise(num = n_distinct(Issue.Type))
+
+case <- calls %>% 
+  select(year, Case.Owner)%>%
+  group_by(year)%>%
+  summarise(num = n_distinct(Case.Owner))
+
+# Great this matches Hye Seon. Now I can do the same for the census data raw that I have. 
+safe_census_raw <- raw
+safe_census_perc <- percents
+
+raw <- raw %>%
+  mutate(college = associate + bachelor)%>%
+  filter(TRACTCE10 %in% tracts)
+
+percents <- percents %>% 
+  filter(TRACTCE10 %in% tracts)
+
+# Get the statistics on the percent data
+dfSummary(percents)
+
+# Re-Do the normalized values
+norm2 <- function(dataset, feature, population, coltitle ="new_name"){
+  x <- feature * population
+  sum <- sum(as.numeric(x))
+  dataset <- mutate(dataset,
+                    name = x/sum)
+  colnames(dataset)[which(colnames(dataset)== "name")]<- paste("norm", coltitle, sep = "_")
+  View(dataset)
+  print(dataset)
+}
+
+#[1] "med_income"        "female"           
+#[3] "male"              "black"            
+#[5] "asian"             "native"           
+#[7] "white"             "latino"           
+#[9] "other"             "highschool"       
+#[11] "graduate"          "unemployment_rate"
+#[13] "per_cap_income"    "tot_pop"          
+#[15] "TRACTCE10"
+
+raw <- norm2(raw, raw$unemployment_rate, raw$tot_pop, "unemployment")
+View(raw)
+write.csv(raw, "raw_census_wnorm.csv")
+
+# Now get the stats
+dfSummary(raw)
